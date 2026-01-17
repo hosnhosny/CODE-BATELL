@@ -1,0 +1,37 @@
+
+// Updated compiler service to log standard AI simulation instead of dual-key fallback.
+import { simulateCodeExecution } from './gemini';
+
+const RAPID_API_KEY = '734b3b4339msh8a673109e81cdabp1ee505jsn3feda9fce834';
+const RAPID_API_HOST = 'cpp-17-code-compiler.p.rapidapi.com';
+
+export async function compileCode(code: string, stdin: string = "") {
+  try {
+    const response = await fetch(`https://${RAPID_API_HOST}/compile/`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-rapidapi-key': RAPID_API_KEY,
+        'x-rapidapi-host': RAPID_API_HOST
+      },
+      body: JSON.stringify({ code, stdin })
+    });
+
+    if (!response.ok) {
+      throw new Error("RapidAPI Service Unavailable");
+    }
+
+    const data = await response.json();
+    
+    // إذا كان الخطأ متعلق بالمفتاح أو تجاوز الحد، ننتقل للمحاكاة بالذكاء الاصطناعي
+    if (data.error && (data.error.includes("Key") || data.error.includes("limit"))) {
+      console.warn('RapidAPI limit reached, switching to Gemini AI Simulation...');
+      return await simulateCodeExecution(code, stdin);
+    }
+    
+    return data.output || data.error || 'لا توجد مخرجات';
+  } catch (error) {
+    console.warn('External Compiler failed, using Gemini AI Simulation...');
+    return await simulateCodeExecution(code, stdin);
+  }
+}
