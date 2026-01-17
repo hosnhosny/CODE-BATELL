@@ -20,7 +20,7 @@ const Register: React.FC = () => {
   // مفتاح الموقع (Site Key)
   // يفضل وضعه في المتغيرات البيئية في Cloudflare باسم VITE_HCAPTCHA_SITE_KEY
   // أو يمكنك وضعه هنا مباشرة كنص إذا واجهت صعوبة
-  const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "ضع_مفتاح_الموقع_هنا_اذا_لم_يعمل_المتغير";
+  const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "0566d5d0-e572-4864-8374-3140d496d0a6";
 
   const handleSocialLogin = async (provider: 'google' | 'github') => {
     audioService.playClick();
