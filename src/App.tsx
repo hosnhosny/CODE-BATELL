@@ -27,7 +27,6 @@ const App: React.FC = () => {
   const [currentCodeContext, setCurrentCodeContext] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    // 1. وظيفة لجلب بيانات البروفايل وتحديث الـ LocalStorage
     const syncUserSession = async (session: any) => {
       if (session) {
         const { data: profile } = await supabase
@@ -43,23 +42,29 @@ const App: React.FC = () => {
           localStorage.setItem('cb_avatar', profile.avatar_url);
           setUser(profile.username);
         }
+
+        // 🚀 إصلاح مشكلة الرابط بعد العودة من الإيميل
+        // هذا الجزء سيكتشف رمز الدخول ويوجه المستخدم للوحة التحكم
+        if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery'))) {
+           // نستخدم replace لتنظيف الرابط وتوجيه المستخدم
+           window.history.replaceState(null, '', '/#/dashboard');
+        }
       } else {
         setUser(null);
         localStorage.clear();
       }
     };
 
-    // 2. التحقق من الجلسة عند فتح التطبيق
+    // التحقق عند بدء التطبيق
     supabase.auth.getSession().then(({ data: { session } }) => {
       syncUserSession(session);
     });
 
-    // 3. الاستماع لتغييرات الحالة (دخول/خروج)
+    // الاستماع لتغييرات الحالة (مثل الضغط على رابط الإيميل)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       syncUserSession(session);
     });
 
-    // الاستماع لتحديثات الكود للمساعد الذكي
     const handleCodeUpdate = (e: any) => { setCurrentCodeContext(e.detail); };
     window.addEventListener('codeUpdate', handleCodeUpdate);
 

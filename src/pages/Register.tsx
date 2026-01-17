@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import HCaptcha from '@hcaptcha/react-hcaptcha'; // استيراد المكتبة
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { ARAB_COUNTRIES } from '../types';
 import { supabase } from '../lib/supabase';
 import { audioService } from '../services/audio';
@@ -10,23 +10,24 @@ const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [country, setCountry] = useState('');
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null); // حالة لحفظ رمز الكابتشا
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const captchaRef = useRef<HCaptcha>(null);
 
-  // استبدل هذا بمفتاح الموقع الخاص بك من hCaptcha
-  // يفضل وضعه في ملف .env مثل: import.meta.env.VITE_HCAPTCHA_SITE_KEY
-  const HCAPTCHA_SITE_KEY = "0566d5d0-e572-4864-8374-3140d496d0a6"; // هذا مفتاح تجريبي للاختبار فقط
+  // مفتاح الموقع (Site Key)
+  // يفضل وضعه في المتغيرات البيئية في Cloudflare باسم VITE_HCAPTCHA_SITE_KEY
+  // أو يمكنك وضعه هنا مباشرة كنص إذا واجهت صعوبة
+  const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "ضع_مفتاح_الموقع_هنا_اذا_لم_يعمل_المتغير";
 
   const handleSocialLogin = async (provider: 'google' | 'github') => {
     audioService.playClick();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: provider,
       options: {
-        redirectTo: window.location.origin + '/#/dashboard'
+        redirectTo: 'https://code-batell.pages.dev/#/dashboard'
       }
     });
     if (error) setError("خطأ في الاتصال بالمزود: " + error.message);
@@ -36,11 +37,10 @@ const Register: React.FC = () => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
-    
-    // 1. التحقق من الدولة
+
     if (!country) { setError("يرجى اختيار الدولة."); return; }
     
-    // 2. التحقق من الكابتشا
+    // التحقق من الكابتشا
     if (!captchaToken) { 
       setError("يرجى إثبات أنك لست روبوت (حل الكابتشا)."); 
       return; 
@@ -55,34 +55,35 @@ const Register: React.FC = () => {
         password,
         options: { 
           data: { full_name: name, country: country },
-          captchaToken: captchaToken // إرسال رمز التحقق للسيرفر
+          captchaToken: captchaToken,
+          // 👇 هذا هو السطر الأهم لحل مشكلة التوجيه
+          emailRedirectTo: 'https://code-batell.pages.dev/#/dashboard'
         }
       });
 
       if (authError) throw authError;
 
-      // إذا تم التسجيل بنجاح
       if (authData.user) {
-        // التحقق مما إذا كان هناك جلسة (يعني تم تسجيل الدخول مباشرة)
-        // أو لا توجد جلسة (يعني بانتظار تأكيد البريد الإلكتروني)
         if (authData.session) {
+          // تم الدخول مباشرة (لا يتطلب تأكيد)
           localStorage.setItem("cb_token", authData.session.access_token);
           localStorage.setItem("cb_username", name);
           audioService.playSuccess();
           navigate('/dashboard');
         } else {
-          // هذه الحالة تعني أن Supabase ينتظر تأكيد البريد الإلكتروني
+          // يتطلب تأكيد البريد
           audioService.playSuccess();
-          setSuccessMsg("تم إرسال رابط التفعيل إلى بريدك الإلكتروني. يرجى التحقق من الصندوق الوارد (أو الرسائل غير المرغوب فيها) لتفعيل حسابك.");
-          // تفريغ الحقول لمنع التكرار
+          setSuccessMsg("تم إرسال رابط التفعيل إلى بريدك الإلكتروني. يرجى التحقق منه للدخول.");
           setName(''); setEmail(''); setPassword(''); setCountry('');
-          captchaRef.current?.resetCaptcha(); // إعادة تعيين الكابتشا
+          captchaRef.current?.resetCaptcha();
+          setCaptchaToken(null);
         }
       }
     } catch (err: any) {
+      console.error(err);
       setError(err.message || "حدث خطأ أثناء التسجيل.");
       audioService.playError();
-      captchaRef.current?.resetCaptcha(); // إعادة تعيين الكابتشا عند الخطأ
+      captchaRef.current?.resetCaptcha();
       setCaptchaToken(null);
     } finally {
       setLoading(false);
@@ -128,26 +129,25 @@ const Register: React.FC = () => {
               <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-[#0f1024] border border-[#34355a] p-3 rounded-xl outline-none text-left" dir="ltr" />
             </div>
             
-            {/* مكان الكابتشا */}
-            <div className="flex justify-center py-2">
+            {/* الكابتشا */}
+            <div className="flex justify-center py-4">
               <HCaptcha
                 ref={captchaRef}
                 sitekey={HCAPTCHA_SITE_KEY}
                 onVerify={(token) => setCaptchaToken(token)}
                 onExpire={() => setCaptchaToken(null)}
-                theme="dark" // ليتناسب مع تصميم الموقع
+                theme="dark"
               />
             </div>
 
             {error && <p className="text-red-500 text-xs text-center font-bold bg-red-500/10 p-2 rounded-lg animate-pulse">{error}</p>}
             
             <button type="submit" disabled={loading} className="w-full py-4 bg-[#8f5bff] text-white rounded-xl font-black text-lg hover:bg-[#7a49e6] transition-all disabled:opacity-50 shadow-lg shadow-[#8f5bff]/20">
-              {loading ? 'جاري إنشاء الحساب...' : 'إنشاء الحساب'}
+              {loading ? 'جاري التحقق وإنشاء الحساب...' : 'إنشاء الحساب'}
             </button>
           </form>
         )}
 
-        {/* أزرار التسجيل الاجتماعي تظهر فقط إذا لم تنجح العملية بعد */}
         {!successMsg && (
           <div className="mt-6">
             <div className="relative flex items-center justify-center mb-6">
@@ -162,7 +162,6 @@ const Register: React.FC = () => {
                 <i className="fab fa-github text-white"></i> <span className="text-xs font-bold">GitHub</span>
               </button>
             </div>
-            
             <div className="mt-8 text-center text-sm text-gray-400">
               لديك حساب بالفعل؟ <Link to="/login" className="text-[#8f5bff] font-bold hover:underline">تسجيل الدخول</Link>
             </div>
