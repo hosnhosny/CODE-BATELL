@@ -1,3 +1,4 @@
+// --- START OF FILE audio.ts ---
 
 class AudioService {
   private ctx: AudioContext | null = null;
@@ -5,47 +6,60 @@ class AudioService {
   private isMusicPlaying: boolean = false;
   private volume: number = 0.25;
   
+  // تعديل: استخدام مسارات محلية من مجلد public
+  // تأكد أنك وضعت الملفات في المجلد public/music/
   private epicMusicLinks = [
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3',
-    'https://assets.mixkit.co/music/preview/mixkit-epic-war-634.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3'
+    '/music/bg1.mp3', 
+    '/music/bg2.mp3',
+    '/music/bg3.mp3'
   ];
   private currentLinkIndex = 0;
 
   constructor() {
-    this.setupAudio();
     // استعادة مستوى الصوت المحفوظ
     const savedVolume = localStorage.getItem('cb_volume');
     if (savedVolume) this.volume = parseFloat(savedVolume);
+    
+    // إعداد الصوت الأولي (بدون تشغيل تلقائي لتجنب سياسات المتصفح)
+    this.setupAudio();
   }
 
   private setupAudio() {
     if (this.bgMusic) {
       this.bgMusic.pause();
+      this.bgMusic.src = ""; // تنظيف المصدر القديم
     }
 
     this.bgMusic = new Audio();
     this.bgMusic.loop = true;
     this.bgMusic.volume = this.volume;
-    this.bgMusic.crossOrigin = "anonymous";
+    
+    // هام: إزالة crossOrigin للملفات المحلية لتجنب مشاكل CORS غير الضرورية
+    // this.bgMusic.crossOrigin = "anonymous"; 
+
+    // تعيين الرابط المحلي
     this.bgMusic.src = this.epicMusicLinks[this.currentLinkIndex];
 
-    this.bgMusic.onerror = () => {
-      console.warn("فشل تحميل المقطع، جاري الانتقال للتالي...");
-      this.nextTrack();
+    this.bgMusic.onerror = (e) => {
+      console.warn("فشل تحميل المقطع الصوتي المحلي، تأكد من وجود الملفات في مجلد public/music", e);
+      // محاولة الانتقال للتالي في حالة تلف الملف
+      // نستخدم Timeout لتجنب الدخول في حلقة لانهائية سريعة
+      setTimeout(() => this.nextTrack(), 1000);
     };
   }
 
   private initContext() {
     try {
+      // إنشاء السياق الصوتي فقط عند تفاعل المستخدم
       if (!this.ctx) {
         this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
       if (this.ctx.state === 'suspended') {
         this.ctx.resume();
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("AudioContext Error:", e);
+    }
   }
 
   toggleBackgroundMusic(): boolean {
@@ -56,11 +70,16 @@ class AudioService {
       this.bgMusic.pause();
       this.isMusicPlaying = false;
     } else {
-      this.bgMusic.play().then(() => {
-        this.isMusicPlaying = true;
-      }).catch(() => {
-        this.isMusicPlaying = false;
-      });
+      // التعامل مع Promise التشغيل لتجنب الأخطاء
+      const playPromise = this.bgMusic.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          this.isMusicPlaying = true;
+        }).catch((error) => {
+          console.error("Autoplay prevented:", error);
+          this.isMusicPlaying = false;
+        });
+      }
     }
     return this.isMusicPlaying;
   }
@@ -78,9 +97,11 @@ class AudioService {
   nextTrack() {
     this.currentLinkIndex = (this.currentLinkIndex + 1) % this.epicMusicLinks.length;
     const wasPlaying = this.isMusicPlaying;
+    
     this.setupAudio();
+    
     if (wasPlaying) {
-      this.bgMusic?.play().catch(() => {});
+      this.bgMusic?.play().catch(e => console.error("Error playing next track:", e));
     }
   }
 
@@ -92,6 +113,7 @@ class AudioService {
     return `Track #${this.currentLinkIndex + 1}`;
   }
 
+  // استخدام Web Audio API للمؤثرات الصوتية (SFX)
   private playNote(freq: number, type: OscillatorType, duration: number, volume: number = 0.1) {
     this.initContext();
     if (!this.ctx || this.ctx.state !== 'running') return;
@@ -100,8 +122,12 @@ class AudioService {
       const gain = this.ctx.createGain();
       osc.type = type;
       osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-      gain.gain.setValueAtTime(volume * this.volume * 4, this.ctx.currentTime);
+      
+      // تحسين التعامل مع مستوى الصوت لتجنب "طقطقة" الصوت
+      gain.gain.setValueAtTime(0, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(volume * this.volume * 4, this.ctx.currentTime + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+      
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start();
