@@ -1,3 +1,4 @@
+// --- START OF FILE src/components/Navbar.tsx ---
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -110,8 +111,16 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onOpenTracks, onOpenAI 
           </Link>
           
           <nav className={`hidden md:flex items-center gap-6 text-sm font-medium ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-            <Link to="/" className={`transition-colors hover:text-[#8f5bff] ${location.pathname === '/' ? 'text-[#8f5bff]' : ''}`}>الرئيسية</Link>
+            <Link to="/" className={`transition-colors hover:text-[#8f5bff] ${location.pathname === '/' ? 'text-[#8f5bff]' : ''}`} onClick={() => audioService.playNav()}>الرئيسية</Link>
+            
+            {/* --- زر من نحن الجديد --- */}
+            <Link to="/about" className={`hover:text-[#8f5bff] transition-colors flex items-center gap-1.5 ${location.pathname === '/about' ? 'text-[#8f5bff]' : ''}`} onClick={() => audioService.playNav()}>
+              <i className="fas fa-info-circle text-xs"></i> من نحن
+            </Link>
+            {/* ----------------------- */}
+
             <button onClick={() => { audioService.playClick(); onOpenTracks(); }} className="hover:text-[#8f5bff] transition-colors">المسارات</button>
+            
             <Link to="/community" className={`hover:text-[#8f5bff] transition-colors flex items-center gap-1.5 ${location.pathname === '/community' ? 'text-[#8f5bff]' : ''}`} onClick={() => audioService.playNav()}>
               <i className="fas fa-users text-xs"></i> المجتمع
               <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>

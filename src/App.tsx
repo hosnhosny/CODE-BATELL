@@ -1,3 +1,5 @@
+// --- START OF FILE src/App.tsx ---
+
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
@@ -12,6 +14,7 @@ import Leaderboard from './pages/Leaderboard';
 import Arena from './pages/Arena';
 import BugHunter from './pages/BugHunter';
 import Community from './pages/GlobalChat';
+import About from './pages/About'; // <--- تم إضافة استيراد صفحة من نحن
 import AIAssistant from './components/AIAssistant';
 import { audioService } from './services/audio';
 
@@ -45,12 +48,12 @@ const AuthHandler: React.FC<{ setUser: (name: string | null) => void }> = ({ set
       }
     };
 
-    // الاستماع لتغييرات الحالة (هذا ما يعمل عند الضغط على رابط الإيميل)
+    // الاستماع لتغييرات الحالة
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         await syncUserSession(session);
         
-        // إصلاح مشكلة رابط الإيميل: التوجيه للوحة التحكم وتنظيف الرابط
+        // إصلاح مشكلة رابط الإيميل
         if (window.location.hash.includes('access_token') || 
             window.location.hash.includes('type=signup') || 
             window.location.hash.includes('type=recovery')) {
@@ -67,7 +70,6 @@ const AuthHandler: React.FC<{ setUser: (name: string | null) => void }> = ({ set
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         syncUserSession(session);
-        // إذا كان المستخدم مسجلاً بالفعل ويحاول دخول صفحة الدخول
         if (location.pathname === '/login' || location.pathname === '/register') {
           navigate('/dashboard', { replace: true });
         }
@@ -121,6 +123,9 @@ const App: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            
+            {/* صفحة من نحن الجديدة */}
+            <Route path="/about" element={<About />} />
             
             <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/login" />} />
             <Route path="/track/c++" element={user ? <LessonPage /> : <Navigate to="/login" />} />
