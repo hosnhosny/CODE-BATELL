@@ -1,5 +1,4 @@
-
-// Updated compiler service to log standard AI simulation instead of dual-key fallback.
+// src/services/compiler.ts
 import { simulateCodeExecution } from './gemini';
 
 const RAPID_API_KEY = '734b3b4339msh8a673109e81cdabp1ee505jsn3feda9fce834';
@@ -17,21 +16,12 @@ export async function compileCode(code: string, stdin: string = "") {
       body: JSON.stringify({ code, stdin })
     });
 
-    if (!response.ok) {
-      throw new Error("RapidAPI Service Unavailable");
-    }
-
     const data = await response.json();
+    if (response.ok && data.output) return data.output;
     
-    // إذا كان الخطأ متعلق بالمفتاح أو تجاوز الحد، ننتقل للمحاكاة بالذكاء الاصطناعي
-    if (data.error && (data.error.includes("Key") || data.error.includes("limit"))) {
-      console.warn('RapidAPI limit reached, switching to Gemini AI Simulation...');
-      return await simulateCodeExecution(code, stdin);
-    }
-    
-    return data.output || data.error || 'لا توجد مخرجات';
+    // إذا فشل الـ API الخارجي، نستخدم الذكاء الاصطناعي (الذي سيجرب المفاتيح الثلاثة)
+    return await simulateCodeExecution(code, stdin);
   } catch (error) {
-    console.warn('External Compiler failed, using Gemini AI Simulation...');
     return await simulateCodeExecution(code, stdin);
   }
 }
