@@ -1,56 +1,74 @@
-// --- START OF FILE audio.ts ---
+// --- START OF FILE src/services/audio.ts ---
 
 class AudioService {
   private ctx: AudioContext | null = null;
   private bgMusic: HTMLAudioElement | null = null;
   private isMusicPlaying: boolean = false;
   private volume: number = 0.25;
-  
-  // تعديل: استخدام مسارات محلية من مجلد public
-  // تأكد أنك وضعت الملفات في المجلد public/music/
+  private errorCount: number = 0; // عداد لحماية المتصفح من التكرار اللانهائي
+
+  // قمنا بتغيير الروابط إلى روابط خارجية تعمل مباشرة للتجربة
+  // يمكنك لاحقاً استبدالها بملفاتك المحلية
   private epicMusicLinks = [
-    '/music/bg1.mp3', 
-    '/music/bg2.mp3',
-    '/music/bg3.mp3'
+    'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=cyberpunk-city-110261.mp3', 
+    'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=epic-cinematic-trailer-113583.mp3',
+    'https://cdn.pixabay.com/download/audio/2021/11/23/audio_035a3a1651.mp3?filename=technology-background-106571.mp3'
   ];
   private currentLinkIndex = 0;
 
   constructor() {
-    // استعادة مستوى الصوت المحفوظ
     const savedVolume = localStorage.getItem('cb_volume');
     if (savedVolume) this.volume = parseFloat(savedVolume);
+
+    const savedTrack = localStorage.getItem('cb_track_index');
+    if (savedTrack) {
+        const index = parseInt(savedTrack);
+        // تأكد أن الرقم المحفوظ ضمن حدود المصفوفة
+        if (index >= 0 && index < this.epicMusicLinks.length) {
+            this.currentLinkIndex = index;
+        }
+    }
     
-    // إعداد الصوت الأولي (بدون تشغيل تلقائي لتجنب سياسات المتصفح)
     this.setupAudio();
   }
 
   private setupAudio() {
     if (this.bgMusic) {
       this.bgMusic.pause();
-      this.bgMusic.src = ""; // تنظيف المصدر القديم
+      this.bgMusic.src = "";
     }
 
     this.bgMusic = new Audio();
     this.bgMusic.loop = true;
     this.bgMusic.volume = this.volume;
+    this.bgMusic.crossOrigin = "anonymous"; // ضروري للروابط الخارجية
     
-    // هام: إزالة crossOrigin للملفات المحلية لتجنب مشاكل CORS غير الضرورية
-    // this.bgMusic.crossOrigin = "anonymous"; 
-
-    // تعيين الرابط المحلي
     this.bgMusic.src = this.epicMusicLinks[this.currentLinkIndex];
 
+    // معالجة الأخطاء المحسنة لمنع التكرار اللانهائي
     this.bgMusic.onerror = (e) => {
-      console.warn("فشل تحميل المقطع الصوتي المحلي، تأكد من وجود الملفات في مجلد public/music", e);
-      // محاولة الانتقال للتالي في حالة تلف الملف
-      // نستخدم Timeout لتجنب الدخول في حلقة لانهائية سريعة
-      setTimeout(() => this.nextTrack(), 1000);
+      console.warn(`فشل تحميل المقطع رقم ${this.currentLinkIndex + 1}.`, e);
+      
+      this.errorCount++;
+      
+      // إذا فشل التحميل 3 مرات (بعدد الأغاني)، توقف عن المحاولة
+      if (this.errorCount < this.epicMusicLinks.length) {
+          console.log("جاري محاولة تشغيل المقطع التالي...");
+          setTimeout(() => this.nextTrack(), 2000); // زدنا الوقت لـ 2 ثانية
+      } else {
+          console.error("توقف النظام الصوتي: لا يمكن تحميل أي ملف صوتي.");
+          this.isMusicPlaying = false;
+      }
+    };
+
+    // إعادة تعيين عداد الأخطاء عند النجاح في التحميل
+    this.bgMusic.oncanplay = () => {
+        this.errorCount = 0;
     };
   }
 
   private initContext() {
     try {
-      // إنشاء السياق الصوتي فقط عند تفاعل المستخدم
       if (!this.ctx) {
         this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
@@ -66,11 +84,13 @@ class AudioService {
     this.initContext();
     if (!this.bgMusic) return false;
     
+    // إعادة تعيين العداد عند محاولة التشغيل اليدوي
+    this.errorCount = 0;
+
     if (this.isMusicPlaying) {
       this.bgMusic.pause();
       this.isMusicPlaying = false;
     } else {
-      // التعامل مع Promise التشغيل لتجنب الأخطاء
       const playPromise = this.bgMusic.play();
       if (playPromise !== undefined) {
         playPromise.then(() => {
@@ -96,11 +116,16 @@ class AudioService {
 
   nextTrack() {
     this.currentLinkIndex = (this.currentLinkIndex + 1) % this.epicMusicLinks.length;
+    
+    localStorage.setItem('cb_track_index', this.currentLinkIndex.toString());
+
     const wasPlaying = this.isMusicPlaying;
     
     this.setupAudio();
     
     if (wasPlaying) {
+      // إعادة تعيين العداد لأن المستخدم طلب التغيير بنفسه
+      this.errorCount = 0;
       this.bgMusic?.play().catch(e => console.error("Error playing next track:", e));
     }
   }
@@ -113,7 +138,6 @@ class AudioService {
     return `Track #${this.currentLinkIndex + 1}`;
   }
 
-  // استخدام Web Audio API للمؤثرات الصوتية (SFX)
   private playNote(freq: number, type: OscillatorType, duration: number, volume: number = 0.1) {
     this.initContext();
     if (!this.ctx || this.ctx.state !== 'running') return;
@@ -123,7 +147,6 @@ class AudioService {
       osc.type = type;
       osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
       
-      // تحسين التعامل مع مستوى الصوت لتجنب "طقطقة" الصوت
       gain.gain.setValueAtTime(0, this.ctx.currentTime);
       gain.gain.linearRampToValueAtTime(volume * this.volume * 4, this.ctx.currentTime + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);

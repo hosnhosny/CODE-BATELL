@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { audioService } from '../services/audio';
-import { supabase } from '../lib/supabase'; // استيراد العميل
+import { supabase } from '../lib/supabase';
 
 interface Message {
   id: string;
@@ -17,23 +17,36 @@ const GlobalChat: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [onlineCount, setOnlineCount] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  
+  // مرجع لتتبع حالة المكون (لمنع أخطاء التحديث بعد الخروج)
+  const isMounted = useRef(false);
 
-  // بيانات المستخدم الحالي من localStorage أو Auth
+  // بيانات المستخدم الحالي
   const currentUsername = localStorage.getItem('cb_username') || 'محارب';
   const currentAvatar = localStorage.getItem('cb_avatar') || 'https://api.dicebear.com/7.x/bottts/svg?seed=Felix';
   const currentCountry = localStorage.getItem('cb_country') || '🌍 العالم العربي';
 
   useEffect(() => {
-    // 1. جلب الرسائل القديمة (آخر 50 رسالة)
+    isMounted.current = true;
+
+    // 1. جلب الرسائل القديمة
     const fetchMessages = async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .order('created_at', { ascending: true })
-        .limit(50);
-      
-      if (data) setMessages(data);
-      if (error) console.error("Error fetching messages:", error);
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .order('created_at', { ascending: true })
+          .limit(50);
+        
+        // إذا تم إغلاق الصفحة، لا تقم بتحديث الحالة
+        if (!isMounted.current) return;
+
+        if (error) throw error;
+        if (data) setMessages(data);
+
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      }
     };
 
     fetchMessages();
@@ -44,52 +57,68 @@ const GlobalChat: React.FC = () => {
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'messages' }, 
         (payload) => {
+          if (!isMounted.current) return;
+
           const incoming = payload.new as Message;
           setMessages((prev) => [...prev, incoming]);
+          
           if (incoming.user_name !== currentUsername) {
-             audioService.playNav(); // صوت تنبيه للرسائل القادمة
+             // تم إزالة .catch لأن الدالة void
+             audioService.playNav(); 
           }
         }
       )
       .subscribe();
 
-    // 3. محاكاة عدد المتصلين (يمكن جعلها حقيقية باستخدام Supabase Presence)
+    // 3. محاكاة عدد المتصلين
     setOnlineCount(Math.floor(Math.random() * 50) + 100);
 
+    // دالة التنظيف
     return () => {
+      isMounted.current = false;
       supabase.removeChannel(channel);
     };
   }, [currentUsername]);
 
+  // التمرير التلقائي للأسفل
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
+    // تم إزالة .catch هنا أيضاً
     audioService.playClick();
 
     const tempMessage = newMessage;
-    setNewMessage('');
+    setNewMessage(''); // تفريغ الحقل فوراً
 
-    // إرسال الرسالة لقاعدة البيانات
-    const { error } = await supabase
-      .from('messages')
-      .insert([
-        {
-          user_name: currentUsername,
-          avatar_url: currentAvatar,
-          message_text: tempMessage,
-          country: currentCountry,
-          user_id: (await supabase.auth.getUser()).data.user?.id
-        }
-      ]);
+    try {
+      // جلب الآيدي بشكل آمن
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || 'anonymous';
 
-    if (error) {
+      const { error } = await supabase
+        .from('messages')
+        .insert([
+          {
+            user_name: currentUsername,
+            avatar_url: currentAvatar,
+            message_text: tempMessage,
+            country: currentCountry,
+            user_id: userId
+          }
+        ]);
+
+      if (error) throw error;
+
+    } catch (error) {
       console.error("Error sending message:", error);
-      alert("فشل إرسال الرسالة، حاول مرة أخرى.");
+      alert("حدث خطأ أثناء إرسال الرسالة");
     }
   };
 

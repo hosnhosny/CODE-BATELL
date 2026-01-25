@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
 
 # Editor directories and files
 .vscode/*
@@ -23,7 +24,7 @@ dist-ssr
 *.sln
 *.sw?
 # تجاهل ملف المفاتيح السرية (أهم سطر)
-.env
+
 
 # تجاهل ملفات المكتبات الضخمة التي لا نحتاج لرفعها
 node_modules/

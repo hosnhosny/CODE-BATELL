@@ -1,3 +1,4 @@
+// --- START OF FILE src/pages/Lesson.tsx ---
 
 import React, { useState, useEffect } from 'react';
 import Editor, { type EditorMarker } from '../components/Editor';
@@ -5,6 +6,20 @@ import Celebration from '../components/Celebration';
 import { compileCode } from '../services/compiler';
 import { explainMyCode, evaluateChallenge, optimizeMyCode, getCodeMarkers } from '../services/gemini';
 import { audioService } from '../services/audio';
+
+// --- بيانات الدروس (يمكنك استبدال الروابط لاحقاً) ---
+const COURSE_LESSONS = [
+  { id: 1, title: '1. كورس كامل (c++)', url: 'https://www.youtube.com/embed/35qTqtpQMxg?si=HJX5ivgK7RIFYO61' },
+  { id: 2, title: '2. المتغيرات وأنواع البيانات (Variables)', url: 'https://www.youtube.com/embed/prElSg7z83k?si=mTuwBSXu8walmmPO' },
+  { id: 3, title: '3. جمل الإدخال والإخراج (cin/cout)', url: 'https://www.youtube.com/embed/1gAsjP84QPk?si=aoYrhW6-WcfvlQXv' },
+  { id: 4, title: '4. الجمل الشرطية (If Statements)', url: 'https://www.youtube.com/embed/vauFEYr5-WU?si=r2l-nxthiATSfAoq' },
+  { id: 5, title: '5. الحلقات التكرارية (Loops)', url: 'https://www.youtube.com/embed/Go-7yFm6gv8?si=9e1in9Thiq8lqALX' },
+  { id: 6, title: '6. الدوال (Functions)', url: 'https://www.youtube.com/embed/dQZZg8okYKg?si=ERTS34roip47ZOMQ' },
+  { id: 7, title: '7. المؤشرات(pointer)', url: 'https://www.youtube.com/embed/v-eV72gnUv0?si=HxNkJNkKpUpb7RoD' },
+  { id: 8, title: '8. المصفوفات(Array)', url: 'https://www.youtube.com/embed/-Xfx53vVvR0?si=NvVpbWxl-P5MtDrc' },
+  { id: 9, title: '9. (do while , while)', url: 'https://www.youtube.com/embed/-l9_NhUYmBc?si=dujDIIkSaSgng_hX' },
+  { id: 10, title: '10. البرمجة الكائنية (OOP)', url: 'https://www.youtube.com/embed/aJG-KnmfFxM?si=9ctHUV9lGm0Sv5zT' },
+];
 
 const INITIAL_CODE = `#include <iostream>
 using namespace std;
@@ -33,11 +48,13 @@ const LessonPage: React.FC = () => {
   const [userXP, setUserXP] = useState(Number(localStorage.getItem('cb_xp') || '0'));
   const [editorMarkers, setEditorMarkers] = useState<EditorMarker[]>([]);
   
+  // --- حالة النافذة المنبثقة للفيديوهات ---
+  const [isVideoListOpen, setIsVideoListOpen] = useState(false);
+  
   const activeTheme = 'golden-batell';
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('codeUpdate', { detail: code }));
-    // مسح العلامات الحمراء عند البدء في الكتابة مرة أخرى (اختياري، أو اتركها حتى التحقق القادم)
     if (editorMarkers.length > 0) setEditorMarkers([]);
   }, [code]);
 
@@ -45,11 +62,8 @@ const LessonPage: React.FC = () => {
     audioService.playClick();
     setIsLoading(true);
     setOutput('🚀 جاري تشغيل المحرك الذكي...');
-    
-    // محاولة جلب أخطاء الكود أولاً لتسليط الضوء عليها
     const markers = await getCodeMarkers(code);
     setEditorMarkers(markers);
-
     const result = await compileCode(code, stdin);
     setOutput(result);
     setIsLoading(false);
@@ -60,20 +74,15 @@ const LessonPage: React.FC = () => {
     setIsVerifying(true);
     setActiveSideTab('ai');
     setAiExplanation('🤖 جاري تقييم منطق الكود الخاص بك...');
-    
-    // جلب العلامات التحذيرية/الأخطاء
     const markers = await getCodeMarkers(code);
     setEditorMarkers(markers);
-
     const evaluation = await evaluateChallenge(code, CHALLENGE_DESC);
-    
     setFeedback({ 
       isCorrect: evaluation.isCorrect, 
       message: evaluation.feedback,
       score: evaluation.score 
     });
     setAiExplanation(evaluation.feedback);
-
     if (evaluation.isCorrect) {
       audioService.playSuccess();
       const earnedXP = evaluation.score || 100;
@@ -85,7 +94,6 @@ const LessonPage: React.FC = () => {
     } else {
       audioService.playError();
     }
-    
     setIsVerifying(false);
   };
 
@@ -106,9 +114,68 @@ const LessonPage: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#0a0b1e]">
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#0a0b1e] relative">
       <Celebration active={showReward} />
       
+      {/* --- نافذة عرض الفيديوهات المنبثقة --- */}
+      {isVideoListOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6 animate-in fade-in duration-300">
+          <div className="bg-[#12132b] border border-white/10 w-full max-w-6xl max-h-[90vh] rounded-[2.5rem] overflow-hidden flex flex-col shadow-[0_0_100px_rgba(143,91,255,0.2)]">
+            
+            {/* رأس النافذة */}
+            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-[#8f5bff]/10 to-transparent">
+              <div>
+                <h2 className="text-3xl font-black flex items-center gap-4 text-white">
+                  <i className="fas fa-play-circle text-[#8f5bff]"></i> c++ مكتبة دروس المسار
+                </h2>
+                <p className="text-gray-500 text-sm mt-1">شاهد الدروس السابقة أو انتقل للدرس التالي.</p>
+              </div>
+              <button 
+                onClick={() => { setIsVideoListOpen(false); audioService.playClick(); }}
+                className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-500/20 transition-all border border-white/5"
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+
+            {/* شبكة الفيديوهات */}
+            <div className="flex-1 overflow-y-auto p-8 scrollbar-hide bg-[#0a0b1e]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {COURSE_LESSONS.map((lesson) => (
+                  <div key={lesson.id} className="bg-[#1a1b3b] p-4 rounded-3xl border border-white/5 hover:border-[#8f5bff]/40 group transition-all">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-[#8f5bff] flex items-center justify-center text-white font-black text-sm shadow-lg">
+                        {lesson.id}
+                      </div>
+                      <h3 className="text-sm font-bold text-white truncate">{lesson.title}</h3>
+                    </div>
+                    
+                    <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/5 bg-black">
+                      <iframe 
+                        width="100%" 
+                        height="100%" 
+                        src={lesson.url} 
+                        title={lesson.title} 
+                        frameBorder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen 
+                        className="opacity-80 group-hover:opacity-100 transition-opacity"
+                      ></iframe>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* تذييل النافذة */}
+            <div className="p-6 bg-[#12132b] border-t border-white/5 text-center">
+              <p className="text-gray-500 text-xs">يتم إضافة دروس جديدة أسبوعياً. استمر في التقدم!</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- شاشة الجائزة --- */}
       {showReward && (
         <div className="absolute inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-[#1a1b3b] border-2 border-yellow-500 p-10 rounded-[2.5rem] text-center shadow-[0_0_80px_rgba(234,179,8,0.4)] transform animate-in zoom-in duration-500">
@@ -126,6 +193,7 @@ const LessonPage: React.FC = () => {
         </div>
       )}
 
+      {/* --- القائمة الجانبية اليمنى --- */}
       <div className="w-1/3 border-l border-white/5 flex flex-col bg-[#0f1024] shadow-2xl z-10">
         <div className="flex bg-[#050616] p-1">
           <button 
@@ -145,13 +213,31 @@ const LessonPage: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-8 scrollbar-hide">
           {activeSideTab === 'content' ? (
             <div className="animate-in slide-in-from-right duration-300">
-              <div className="flex justify-between items-center mb-8">
+              <div className="flex justify-between items-center mb-6">
                  <h2 className="text-2xl font-black text-white">تحدي المدخلات</h2>
                  <div className="text-right">
                     <div className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">رصيد الخبرة</div>
                     <div className="text-xl font-black text-[#8f5bff]">{userXP} XP</div>
                  </div>
               </div>
+              
+              {/* زر فتح قائمة الفيديوهات */}
+              <button 
+                onClick={() => { setIsVideoListOpen(true); audioService.playNav(); }}
+                className="w-full mb-8 py-4 bg-[#1a1b3b] border border-[#8f5bff]/30 hover:bg-[#8f5bff]/10 rounded-2xl flex items-center justify-between px-6 transition-all group shadow-lg"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-[#8f5bff] rounded-full flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                    <i className="fas fa-list-ul"></i>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white font-bold">قائمة الدروس</div>
+                    <div className="text-[10px] text-gray-400">استعرض {COURSE_LESSONS.length} فيديو تعليمي</div>
+                  </div>
+                </div>
+                <i className="fas fa-chevron-left text-gray-500 group-hover:-translate-x-1 transition-transform"></i>
+              </button>
+
               <p className="text-gray-400 leading-relaxed mb-8 text-lg">
                 اليوم سنتعلم كيف نجعل برامجنا تفاعلية! سنستخدم <code>cin</code> لاستقبال البيانات من لوحة المفاتيح.
               </p>
@@ -167,10 +253,11 @@ const LessonPage: React.FC = () => {
               </div>
 
               <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl group">
-                <iframe width="100%" height="200" src="https://www.youtube.com/embed/MDCUjpqH5Lw" title="Tutorial" frameBorder="0" allowFullScreen className="group-hover:scale-105 transition-transform duration-700"></iframe>
+                <iframe width="100%" height="200" src="https://www.youtube.com/embed/35qTqtpQMxg?si=HJX5ivgK7RIFYO61" title="Tutorial" frameBorder="0" allowFullScreen className="group-hover:scale-105 transition-transform duration-700"></iframe>
               </div>
             </div>
           ) : (
+            // --- محتوى المساعد الذكي ---
             <div className="space-y-6 animate-in slide-in-from-left duration-300">
               <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
                 <div className="w-12 h-12 rounded-xl bg-[#8f5bff] flex items-center justify-center text-white shadow-[0_0_15px_rgba(143,91,255,0.4)]">
@@ -200,6 +287,7 @@ const LessonPage: React.FC = () => {
         </div>
       </div>
 
+      {/* --- المحرر والكونسول --- */}
       <div className="flex-1 flex flex-col">
         <div className="h-16 bg-[#050616] border-b border-white/5 flex items-center justify-between px-8">
           <div className="flex items-center gap-4">

@@ -30,6 +30,10 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onOpenTracks, onOpenAI 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('cb_theme') || 'dark');
   const [volume, setVolume] = useState(audioService.getVolume());
+  
+  // (تعديل جديد) إضافة حالة لاسم الأغنية لتحديث الواجهة
+  const [currentTrackName, setCurrentTrackName] = useState(audioService.getCurrentTrackName());
+  
   const location = useLocation();
   
   const [savedAvatar, setSavedAvatar] = useState(localStorage.getItem('cb_avatar') || PRESET_AVATARS[0].url);
@@ -113,11 +117,9 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onOpenTracks, onOpenAI 
           <nav className={`hidden md:flex items-center gap-6 text-sm font-medium ${theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
             <Link to="/" className={`transition-colors hover:text-[#8f5bff] ${location.pathname === '/' ? 'text-[#8f5bff]' : ''}`} onClick={() => audioService.playNav()}>الرئيسية</Link>
             
-            {/* --- زر من نحن الجديد --- */}
             <Link to="/about" className={`hover:text-[#8f5bff] transition-colors flex items-center gap-1.5 ${location.pathname === '/about' ? 'text-[#8f5bff]' : ''}`} onClick={() => audioService.playNav()}>
               <i className="fas fa-info-circle text-xs"></i> من نحن
             </Link>
-            {/* ----------------------- */}
 
             <button onClick={() => { audioService.playClick(); onOpenTracks(); }} className="hover:text-[#8f5bff] transition-colors">المسارات</button>
             
@@ -333,10 +335,16 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onOpenTracks, onOpenAI 
                       <div className="w-8 h-8 rounded-lg bg-[#8f5bff]/10 flex items-center justify-center text-[#8f5bff]">
                         <i className="fas fa-music text-xs"></i>
                       </div>
-                      <span className="text-xs font-bold truncate max-w-[120px]">{audioService.getCurrentTrackName()}</span>
+                      {/* (تعديل جديد) استخدام الحالة المتغيرة بدلاً من الاستدعاء المباشر للدالة */}
+                      <span className="text-xs font-bold truncate max-w-[120px]">{currentTrackName}</span>
                     </div>
                     <button 
-                      onClick={() => { audioService.nextTrack(); audioService.playClick(); }}
+                      onClick={() => { 
+                        audioService.nextTrack(); 
+                        audioService.playClick();
+                        // (تعديل جديد) تحديث اسم الأغنية عند الضغط
+                        setCurrentTrackName(audioService.getCurrentTrackName());
+                      }}
                       className="px-4 py-2 bg-[#8f5bff] text-white text-[10px] font-black rounded-lg hover:scale-105 active:scale-95 transition-all"
                     >
                       تغيير الأغنية
