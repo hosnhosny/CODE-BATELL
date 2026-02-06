@@ -73,7 +73,7 @@ const Arena: React.FC = () => {
         <div className="w-32 h-32 bg-[#8f5bff]/20 rounded-full flex items-center justify-center mx-auto mb-10 border-4 border-[#8f5bff] shadow-[0_0_50px_rgba(143,91,255,0.4)] animate-pulse">
           <i className="fas fa-bolt text-5xl text-[#8f5bff]"></i>
         </div>
-        <h1 className="text-5xl font-black mb-6 uppercase tracking-tighter">ساحة المعارك</h1>
+        <h1 className="text-5xl font-black mb-6 uppercase tracking-tighter">ساحة المباريات</h1>
         <p className="text-gray-400 max-w-xl mx-auto mb-12 text-lg">
           واجه مبرمجين آخرين في تحديات برمجية حية. الفائز يحصد الـ XP والمجد!
         </p>
@@ -163,7 +163,7 @@ const Arena: React.FC = () => {
        <div className="w-24 h-24 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-yellow-500 border border-yellow-500/50">
           <i className="fas fa-flag-checkered text-3xl"></i>
        </div>
-       <h1 className="text-4xl font-black mb-4">انتهت المعركة!</h1>
+       <h1 className="text-4xl font-black mb-4">انتهت المبارة!</h1>
        <p className="text-gray-400 mb-10 max-w-md mx-auto">لقد بذلت قصارى جهدك. تمت مراجعة الحل الخاص بك وتحديث نقاطك في لوحة المتصدرين.</p>
        <button 
         onClick={() => { audioService.playClick(); navigate('/dashboard'); }}

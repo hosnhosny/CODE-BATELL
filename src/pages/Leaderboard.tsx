@@ -69,7 +69,7 @@ const Leaderboard: React.FC = () => {
                     {player.name}
                     {player.isCurrentUser && <span className="text-[8px] bg-[#8f5bff] px-1.5 py-0.5 rounded text-white font-black uppercase">أنت</span>}
                   </div>
-                  <div className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter">محارب الكود</div>
+                  <div className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter">مبرمج الكود</div>
                 </div>
               </div>
 

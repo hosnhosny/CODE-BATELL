@@ -88,7 +88,7 @@ const Dashboard: React.FC = () => {
                 <div>
                   <h1 className="text-3xl font-black text-white">مرحباً، {username}</h1>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs font-bold text-[#8f5bff] bg-[#8f5bff]/10 px-2 py-0.5 rounded">رتبة: محارب الكود</span>
+                    <span className="text-xs font-bold text-[#8f5bff] bg-[#8f5bff]/10 px-2 py-0.5 rounded">رتبة: مبرمج الكود</span>
                     <div className="flex gap-1">
                       {[1, 2, 3].map(i => <i key={i} className="fas fa-star text-yellow-500 text-[8px]"></i>)}
                     </div>
@@ -173,7 +173,7 @@ const Dashboard: React.FC = () => {
                ) : (
                  <i className="fas fa-swords text-red-500 text-xs animate-bounce"></i>
                )}
-               <span className={`text-sm font-bold flex-1 ${tasks.arena ? 'opacity-60' : 'text-white'}`}>الفوز بمباراة ساحة</span>
+               <span className={`text-sm font-bold flex-1 ${tasks.arena ? 'opacity-60' : 'text-white'}`}>الفوز بمبارة</span>
                <div className="flex items-center gap-2">
                  <span className={`text-[10px] font-black ${tasks.arena ? 'text-gray-500' : 'text-red-500'}`}>{tasks.arena ? 'تم الفوز' : '+150 XP'}</span>
                  {!tasks.arena && <i className="fas fa-arrow-left text-[10px] group-hover:-translate-x-1 transition-transform"></i>}

@@ -187,7 +187,7 @@ const LessonPage: React.FC = () => {
               onClick={() => setShowReward(false)} 
               className="px-12 py-4 bg-yellow-500 text-black font-black rounded-2xl hover:bg-yellow-400 transition-all hover:scale-105 active:scale-95"
             >
-              استمر في المعركة
+              استمر في البرمجة
             </button>
           </div>
         </div>
@@ -247,7 +247,7 @@ const LessonPage: React.FC = () => {
                   <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-black shadow-lg">
                     <i className="fas fa-sword"></i>
                   </div>
-                  <h4 className="text-white font-black text-lg">مهمة المعركة:</h4>
+                  <h4 className="text-white font-black text-lg">مهمة ساحة التحدي:</h4>
                 </div>
                 <p className="text-gray-200 leading-relaxed">{CHALLENGE_DESC}</p>
               </div>

@@ -93,7 +93,7 @@ const Register: React.FC = () => {
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top,#3c2b82,#0f1024)]">
       <div className="bg-[#12132b] border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl relative">
-        <h1 className="text-3xl font-black mb-2 text-right">إنشاء محارب جديد</h1>
+        <h1 className="text-3xl font-black mb-2 text-right">إنشاء مبرمج جديد</h1>
         <p className="text-gray-400 mb-8 text-right">انضم إلى أكبر تجمع للمبرمجين العرب.</p>
         
         {successMsg ? (
